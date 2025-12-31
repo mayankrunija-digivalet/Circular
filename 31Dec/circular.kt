@@ -1,13 +1,10 @@
 package com.example.slider_animation
 
-import android.R.attr.angle
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -37,13 +34,12 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.unit.sp
-import com.example.slider_animation.ui.theme.fadeWhite
 
 @Composable
 fun Controller() {
 //    val startAngle = 214f
 //    val endAngle = 324f
-    val startAngle = 250f
+    val startAngle = 214f
     val endAngle = 324f
     var angle by remember { mutableStateOf(startAngle) }
     val normalizedAngle = (angle - startAngle) % (endAngle - startAngle + 360f) + startAngle
@@ -170,41 +166,48 @@ fun Controller() {
             y = size.center.y + radius * sin(Math.toRadians((angle - 90f).toDouble())).toFloat()
         )
 
-        val triangleRadius = radius * .22f
-        val cornerRadius = triangleRadius * 2.5f
+        val triangleRadius = radius * .14f
 
         val trianglePath = Path().apply {
+            val bottomRadius = triangleRadius * .8f
+            val bottomShrinkFactor = 1.6f
+            val newBottomRadius = bottomRadius * bottomShrinkFactor
+            val horizontalShift = -25f
+
             moveTo(
-                knobCenter.x + triangleRadius * cos(Math.toRadians((angle - 90f).toDouble())).toFloat(),
+                knobCenter.x + triangleRadius * cos(Math.toRadians((angle - 90f).toDouble())).toFloat() + horizontalShift,
                 knobCenter.y + triangleRadius * sin(Math.toRadians((angle - 90f).toDouble())).toFloat()
             )
+
             lineTo(
-                knobCenter.x + triangleRadius *  cos(Math.toRadians((angle + 30f).toDouble())).toFloat(),
-                knobCenter.y + triangleRadius *  sin(Math.toRadians((angle + 30f).toDouble())).toFloat()
+                knobCenter.x + newBottomRadius * cos(Math.toRadians((angle + 30f).toDouble())).toFloat() + horizontalShift,
+                knobCenter.y + newBottomRadius * sin(Math.toRadians((angle + 30f).toDouble())).toFloat()
             )
+
             lineTo(
-                knobCenter.x + triangleRadius * cos(Math.toRadians((angle + 150f).toDouble())).toFloat(),
-                knobCenter.y + triangleRadius * sin(Math.toRadians((angle + 150f).toDouble())).toFloat()
+                knobCenter.x + newBottomRadius * cos(Math.toRadians((angle + 150f).toDouble())).toFloat() + horizontalShift,
+                knobCenter.y + newBottomRadius * sin(Math.toRadians((angle + 150f).toDouble())).toFloat()
             )
             close()
         }
+
 
         drawIntoCanvas { canvas ->
             canvas.drawOutline(
                 outline = Outline.Generic(trianglePath),
                 paint = Paint().apply {
                     color = Gold
-                    pathEffect = PathEffect.cornerPathEffect(cornerRadius)
+                    pathEffect = PathEffect.cornerPathEffect(triangleRadius)
                     style = PaintingStyle.Fill
                 }
             )
             canvas.drawOutline(
                 outline = Outline.Generic(trianglePath),
                 paint = Paint().apply {
-                    color = Color.White
+                    color = Color.Black
                     style = PaintingStyle.Stroke
                     strokeWidth = radius * 0.01f
-                    pathEffect = PathEffect.cornerPathEffect(cornerRadius)
+                    pathEffect = PathEffect.cornerPathEffect(triangleRadius)
                     strokeCap = StrokeCap.Round
                     strokeJoin = StrokeJoin.Round
                 }
@@ -251,7 +254,7 @@ fun Controller() {
 //            brush = fadeWhite,
             color = Color.Black,
             startAngle = -90f,
-            sweepAngle = normalizedAngle-3.6f,
+            sweepAngle = normalizedAngle - 3.2f,
             useCenter = false,
             style = Stroke(width = radius * 0.01f),
             topLeft = Offset(
