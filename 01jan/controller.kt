@@ -1,43 +1,30 @@
 package com.example.circular
 
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
@@ -50,7 +37,6 @@ fun Controller() {
 
     val startAngle = 140f
     val sweepAngle = 80f
-
     val horizontalOffset = -360.dp
 
     val animatedTemp by animateFloatAsState(
@@ -71,40 +57,17 @@ fun Controller() {
             }
     ) {
         val density = androidx.compose.ui.platform.LocalDensity.current
-        val offsetPx = with(density) { horizontalOffset.toPx()*.9f }
+        val offsetPx = with(density) { horizontalOffset.toPx() * .9f }
 
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val centerX = size.width - offsetPx
             val centerY = size.height / 2f
-
             val radius = size.height * 0.45f
+
+            // Current angle based on temperature
             val currentAngle = startAngle + ((animatedTemp - minTemp) / (maxTemp - minTemp)) * sweepAngle
 
-            val numberOfTicks = 60
-            for (i in 0..numberOfTicks) {
-                val tickAngle = startAngle + (i.toFloat() / numberOfTicks) * sweepAngle
-                val angleRad = Math.toRadians(tickAngle.toDouble()).toFloat()
-
-                val startLine = radius * 1.05f
-                val endLine = radius * 1.12f
-                val isHighlighted = abs(tickAngle - currentAngle) < 1.5f
-
-                drawLine(
-                    color = if (isHighlighted) Color(0xFF333333) else Color.LightGray.copy(alpha = 0.3f),
-                    start = Offset(
-                        x = centerX + startLine * cos(angleRad),
-                        y = centerY + startLine * sin(angleRad)
-                    ),
-                    end = Offset(
-                        x = centerX + endLine * cos(angleRad),
-                        y = centerY + endLine * sin(angleRad)
-                    ),
-                    strokeWidth = if (isHighlighted) 5f else 2f
-                )
-            }
-
+            // 1. Draw the Main Track Arc
             val trackColor = Color(0xFFC5B8A5)
             val strokeWidth = 80f
             drawArc(
@@ -117,40 +80,172 @@ fun Controller() {
                 topLeft = Offset(centerX - radius, centerY - radius)
             )
 
-            val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
-            val knobOffset = Offset(
-                x = centerX + radius * cos(knobAngleRad),
-                y = centerY + radius * sin(knobAngleRad)
-            )
+            // 2. NEW: Outer and Inner Border Arcs
+            val outerRadius = radius + (strokeWidth / 2) + 10f
+            val innerRadius = radius - (strokeWidth / 2) - 10f
 
-            drawCircle(
-                color = trackColor,
-                radius = strokeWidth * 0.8f,
-                center = knobOffset
-            )
+// Calculate the progress sweep (from start to current knob position)
+            val progressSweep = currentAngle - startAngle
 
-            val borderPadding = 100f
+// Outer Dynamic Border
             drawArc(
-                color = Color.Black.copy(alpha = 0.05f),
+                color = Color.Black.copy(alpha = 0.2f), // Increased alpha slightly for visibility
                 startAngle = startAngle,
-                sweepAngle = sweepAngle,
+                sweepAngle = progressSweep,
                 useCenter = false,
-                style = Stroke(width = 2f),
-                size = Size((radius + borderPadding) * 2, (radius + borderPadding) * 2),
-                topLeft = Offset(centerX - (radius + borderPadding), centerY - (radius + borderPadding))
+                style = Stroke(width = 3f, cap = StrokeCap.Round),
+                size = Size(outerRadius * 2, outerRadius * 2),
+                topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
             )
+
+// Inner Dynamic Border
+            drawArc(
+                color = Color.Black.copy(alpha = 0.2f),
+                startAngle = startAngle,
+                sweepAngle = progressSweep,
+                useCenter = false,
+                style = Stroke(width = 3f, cap = StrokeCap.Round),
+                size = Size(innerRadius * 2, innerRadius * 2),
+                topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
+            )
+
+            // 3. NEW: High-density Ticks with Proximity Scaling
+            val numberOfLines = 120
+            val lineDegreeStep = sweepAngle / numberOfLines
+            val influenceRange = 3f // Degrees of influence around the knob
+
+            for (i in 0..numberOfLines) {
+                val lineAngle = startAngle + (i * lineDegreeStep)
+
+                // Calculate distance from current temperature angle for scaling effect
+                val angleDiff = abs(currentAngle - lineAngle)
+                val scale = if (angleDiff < influenceRange) {
+                    1f + (1f - (angleDiff / influenceRange)) * 0.5f // 15% growth
+                } else {
+                    1f
+                }
+
+                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
+                val tickStart = radius * 1.15f
+                val tickEnd = radius * (1.15f + (0.05f * scale))
+
+                drawLine(
+                    color = if (scale > 1f) Color.DarkGray else Color.LightGray.copy(alpha = 0.5f),
+                    start = Offset(
+                        x = centerX + tickStart * cos(angleRad),
+                        y = centerY + tickStart * sin(angleRad)
+                    ),
+                    end = Offset(
+                        x = centerX + tickEnd * cos(angleRad),
+                        y = centerY + tickEnd * sin(angleRad)
+                    ),
+                    strokeWidth = if (scale > 1f) 3f else 1.5f
+                )
+            }
+
+            // 4. Draw the Knob (Thumb)
+//            val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
+//            drawCircle(
+//                color = trackColor,
+//                radius = strokeWidth * 0.9f,
+//                center = Offset(
+//                    x = centerX + radius * cos(knobAngleRad),
+//                    y = centerY + radius * sin(knobAngleRad)
+//                )
+//            )
+
+            val knobAngleDegrees = currentAngle
+            val knobRadius = strokeWidth * 0.8f
+
+            withTransform({
+                val knobCenterX = centerX + radius * cos(Math.toRadians(knobAngleDegrees.toDouble())).toFloat()
+                val knobCenterY = centerY + radius * sin(Math.toRadians(knobAngleDegrees.toDouble())).toFloat()
+                translate(knobCenterX, knobCenterY)
+
+                // Rotate 180 so the hump points INWARD toward the center,
+                // matching your screenshot.
+                rotate(knobAngleDegrees + 180f)
+            }) {
+                val path = Path().apply {
+                    // Height of the protrusion
+                    val peakHeight = knobRadius * 1f
+                    // Width along the track - making this larger creates the "liquid" transition
+                    val baseWidth = knobRadius * 2f
+                    // How wide the rounded top is
+                    val topRoundness = baseWidth * 0.2f
+
+                    // 1. Start at the "top" shoulder on the track
+                    moveTo(0f, -baseWidth)
+
+                    // 2. Curve from the track to the center of the peak
+                    cubicTo(
+                        x1 = 0f, y1 = -baseWidth * 0.6f,       // Control 1: Keeps the base flat against the track
+                        x2 = -peakHeight, y2 = -topRoundness,  // Control 2: Pulls the "shoulder" out and keeps top wide
+                        x3 = -peakHeight, y3 = 0f               // The center point of the peak
+                    )
+
+                    // 3. Curve from the peak back to the track
+                    cubicTo(
+                        x1 = -peakHeight, y1 = topRoundness,   // Mirror Control 2
+                        x2 = 0f, y2 = baseWidth * 0.6f,        // Mirror Control 1
+                        x3 = 0f, y3 = baseWidth
+                    )
+
+                    close()
+                }
+
+                drawPath(
+                    path = path,
+                    color = trackColor
+                )
+            }
+
+
+
+
         }
 
-            Text(
-                text = "${animatedTemp.toInt()}°",
-                style = androidx.compose.ui.text.TextStyle(
-                    color = Color(0xFF222222),
-                    fontSize = 110.sp,
-                    fontWeight = FontWeight.ExtraLight
-                )
+        // Temperature Text Overlay
+        Text(
+            text = "${animatedTemp.toInt()}°",
+            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterStart),
+            style = androidx.compose.ui.text.TextStyle(
+                color = Color(0xFF222222),
+                fontSize = 110.sp,
+                fontWeight = FontWeight.ExtraLight
             )
+        )
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @Composable
 @Preview(showBackground = true)
