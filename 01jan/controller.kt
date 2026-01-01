@@ -2,6 +2,7 @@ package com.example.circular
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterStart
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -44,9 +46,9 @@ fun Controller() {
 
     var isDraggingKnob by remember { mutableStateOf(false) }
 
-    val animatedTemp by animateFloatAsState(
+    val animatedValue by animateFloatAsState(
         targetValue = tempValue,
-        label = "TempAnim"
+        label = "Value"
     )
 
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -54,6 +56,7 @@ fun Controller() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Gray)
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = { offset ->
@@ -99,53 +102,23 @@ fun Controller() {
             val centerY = size.height / 2f
             val radius = size.height * 0.45f
 
-            val currentAngle = startAngle + ((animatedTemp - minValue) / (maxValue - minValue)) * sweepAngle
+            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
 
             val trackColor = Color(0xFFC5B8A5)
             val strokeWidth = 80f
-            drawArc(
-                color = trackColor,
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                size = Size(radius * 2, radius * 2),
-                topLeft = Offset(centerX - radius, centerY - radius)
-            )
 
-            val outerRadius = radius + (strokeWidth / 2)
-            val innerRadius = radius - (strokeWidth / 2)
 
-            val progressSweep = currentAngle - startAngle
-
-            drawArc(
-                color = Color.Black,
-                startAngle = startAngle,
-                sweepAngle = progressSweep,
-                useCenter = false,
-                style = Stroke(width = 5f, cap = StrokeCap.Round),
-                size = Size(outerRadius * 2, outerRadius * 2),
-                topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
-            )
-
-            drawArc(
-                color = Color.Black,
-                startAngle = startAngle,
-                sweepAngle = progressSweep-5f,
-                useCenter = false,
-                style = Stroke(width = 5f, cap = StrokeCap.Round),
-                size = Size(innerRadius * 2, innerRadius * 2),
-                topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
-            )
 
             val halfStroke = strokeWidth /1.7f
-            val numberOfLines = 120
-            val lineDegreeStep = sweepAngle / numberOfLines
+            val numberOfLines = 150
+            val lineLengthEnd = sweepAngle + 10f
+            val lineLengthStart = startAngle -5f
+            val lineDegreeStep = lineLengthEnd / numberOfLines
             val influenceRange = 4f
             val tickLength = strokeWidth * 0.15f
 
             for (i in 0..numberOfLines) {
-                val lineAngle = startAngle + (i * lineDegreeStep)
+                val lineAngle = lineLengthStart + (i * lineDegreeStep)
                 val angleDiff = abs(currentAngle - lineAngle)
 
                 val scale = if (angleDiff < influenceRange) {
@@ -173,26 +146,8 @@ fun Controller() {
                 )
             }
 
-            for (i in 0..numberOfLines) {
-                val lineAngle = startAngle + (i * lineDegreeStep)
-                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
 
-                val tickStart = radius - halfStroke
-                val tickEnd = tickStart - tickLength
 
-                drawLine(
-                    color = Color.LightGray,
-                    start = Offset(
-                        x = centerX + tickStart * cos(angleRad),
-                        y = centerY + tickStart * sin(angleRad)
-                    ),
-                    end = Offset(
-                        x = centerX + tickEnd * cos(angleRad),
-                        y = centerY + tickEnd * sin(angleRad)
-                    ),
-                    strokeWidth = 3f
-                )
-            }
 
             val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
             val knobCenterX = centerX + radius * cos(knobAngleRad)
@@ -223,16 +178,75 @@ fun Controller() {
                 }
 
                 drawPath(path = path, color = trackColor)
-//                drawPath(
-//                    path = path,
-//                    color = Color.Black,
-//                    style = Stroke(
-//                        width = 2.dp.toPx(),
-//                        cap = StrokeCap.Round,
-//                        join = StrokeJoin.Round
-//                    )
-//                )
+                drawPath(
+                    path = path,
+                    color = Color.White,
+                    style = Stroke(
+                        width = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
             }
+
+            drawArc(
+                color = trackColor,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                size = Size(radius * 2, radius * 2),
+                topLeft = Offset(centerX - radius, centerY - radius)
+            )
+
+            val outerRadius = radius + (strokeWidth / 2)
+            val innerRadius = radius - (strokeWidth / 2)
+
+            val progressSweep = currentAngle - startAngle
+
+            drawArc(
+                color = Color.White,
+                startAngle = startAngle,
+                sweepAngle = progressSweep-3.95f,
+                useCenter = false,
+                style = Stroke(width = 5f, cap = StrokeCap.Round),
+                size = Size(outerRadius * 2, outerRadius * 2),
+                topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
+            )
+
+            drawArc(
+                color = Color.White,
+                startAngle = startAngle,
+                sweepAngle = progressSweep-5f,
+                useCenter = false,
+                style = Stroke(width = 5f, cap = StrokeCap.Round),
+                size = Size(innerRadius * 2, innerRadius * 2),
+                topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
+            )
+
+
+
+            for (i in 0..numberOfLines) {
+                val lineAngle = startAngle + (i * lineDegreeStep)
+                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
+
+                val tickStart = radius - halfStroke
+                val tickEnd = tickStart - tickLength
+
+                drawLine(
+                    color = Color.LightGray,
+                    start = Offset(
+                        x = centerX + tickStart * cos(angleRad),
+                        y = centerY + tickStart * sin(angleRad)
+                    ),
+                    end = Offset(
+                        x = centerX + tickEnd * cos(angleRad),
+                        y = centerY + tickEnd * sin(angleRad)
+                    ),
+                    strokeWidth = 3f
+                )
+            }
+
 
 
 
@@ -240,8 +254,8 @@ fun Controller() {
         }
 
         Text(
-            text = "${animatedTemp.toInt()}°",
-            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterStart),
+            text = "${animatedValue.toInt()}°",
+            modifier = Modifier.align(CenterStart),
             style = androidx.compose.ui.text.TextStyle(
                 color = Color(0xFF222222),
                 fontSize = 110.sp,
