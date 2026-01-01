@@ -29,11 +29,13 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 @Composable
 fun Controller() {
-    val minTemp = 16f
-    val maxTemp = 32f
+    val minValue = 16f
+    val maxValue = 32f
     var tempValue by remember { mutableFloatStateOf(24f) }
 
     val startAngle = 140f
@@ -60,7 +62,7 @@ fun Controller() {
                         val centerY = size.height / 2f
                         val radius = size.height * 0.45f
 
-                        val currentAngle = startAngle + ((tempValue - minTemp) / (maxTemp - minTemp)) * sweepAngle
+                        val currentAngle = startAngle + ((tempValue - minValue) / (maxValue - minValue)) * sweepAngle
                         val angleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
 
                         val knobCenterX = centerX + radius * cos(angleRad)
@@ -69,9 +71,9 @@ fun Controller() {
                         val strokeWidth = 80f
                         val touchRadius = strokeWidth * 1.5f
 
-                        val distance = Math.sqrt(
-                            Math.pow((offset.x - knobCenterX).toDouble(), 2.0) +
-                                    Math.pow((offset.y - knobCenterY).toDouble(), 2.0)
+                        val distance = sqrt(
+                            (offset.x - knobCenterX).toDouble().pow(2.0) +
+                                    (offset.y - knobCenterY).toDouble().pow(2.0)
                         )
 
                         isDraggingKnob = distance <= touchRadius
@@ -82,8 +84,8 @@ fun Controller() {
                         if (isDraggingKnob) {
                             change.consume()
                             val sensitivity = 1200f
-                            val delta = -(dragAmount / sensitivity) * (maxTemp - minTemp)
-                            tempValue = (tempValue + delta).coerceIn(minTemp, maxTemp)
+                            val delta = -(dragAmount / sensitivity) * (maxValue - minValue)
+                            tempValue = (tempValue + delta).coerceIn(minValue, maxValue)
                         }
                     }
                 )
@@ -97,7 +99,7 @@ fun Controller() {
             val centerY = size.height / 2f
             val radius = size.height * 0.45f
 
-            val currentAngle = startAngle + ((animatedTemp - minTemp) / (maxTemp - minTemp)) * sweepAngle
+            val currentAngle = startAngle + ((animatedTemp - minValue) / (maxValue - minValue)) * sweepAngle
 
             val trackColor = Color(0xFFC5B8A5)
             val strokeWidth = 80f
@@ -221,15 +223,15 @@ fun Controller() {
                 }
 
                 drawPath(path = path, color = trackColor)
-                drawPath(
-                    path = path,
-                    color = Color.Black, // Change this to your desired border color
-                    style = Stroke(
-                        width = 2.dp.toPx(), // Set your desired border thickness
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
-                )
+//                drawPath(
+//                    path = path,
+//                    color = Color.Black,
+//                    style = Stroke(
+//                        width = 2.dp.toPx(),
+//                        cap = StrokeCap.Round,
+//                        join = StrokeJoin.Round
+//                    )
+//                )
             }
 
 
