@@ -36,7 +36,7 @@ fun Controller() {
 
     val startAngle = 140f
     val sweepAngle = 80f
-    val horizontalOffset = -360.dp
+    val horizontalOffset = (-360).dp
 
     val animatedTemp by animateFloatAsState(
         targetValue = tempValue,
@@ -77,27 +77,27 @@ fun Controller() {
                 topLeft = Offset(centerX - radius, centerY - radius)
             )
 
-            val outerRadius = radius + (strokeWidth / 2) + 10f
-            val innerRadius = radius - (strokeWidth / 2) - 10f
+            val outerRadius = radius + (strokeWidth / 2)
+            val innerRadius = radius - (strokeWidth / 2)
 
             val progressSweep = currentAngle - startAngle
 
             drawArc(
-                color = Color.Black.copy(alpha = 0.2f),
+                color = Color.Black,
                 startAngle = startAngle,
                 sweepAngle = progressSweep,
                 useCenter = false,
-                style = Stroke(width = 3f, cap = StrokeCap.Round),
+                style = Stroke(width = 5f, cap = StrokeCap.Round),
                 size = Size(outerRadius * 2, outerRadius * 2),
                 topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
             )
 
             drawArc(
-                color = Color.Black.copy(alpha = 0.2f),
+                color = Color.Black,
                 startAngle = startAngle,
-                sweepAngle = progressSweep,
+                sweepAngle = progressSweep-5f,
                 useCenter = false,
-                style = Stroke(width = 3f, cap = StrokeCap.Round),
+                style = Stroke(width = 5f, cap = StrokeCap.Round),
                 size = Size(innerRadius * 2, innerRadius * 2),
                 topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
             )
@@ -117,11 +117,11 @@ fun Controller() {
                 }
 
                 val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
-                val tickStart = radius * 1.15f
-                val tickEnd = radius * (1.15f + (0.05f * scale))
+                val tickStart = radius * 1.05f
+                val tickEnd = radius * (1.02f + (0.05f * scale))
 
                 drawLine(
-                    color = if (scale > 1f) Color.DarkGray else Color.LightGray.copy(alpha = 0.5f),
+                    color = if (scale > 1f) Color.LightGray else Color.LightGray,
                     start = Offset(
                         x = centerX + tickStart * cos(angleRad),
                         y = centerY + tickStart * sin(angleRad)
@@ -130,7 +130,7 @@ fun Controller() {
                         x = centerX + tickEnd * cos(angleRad),
                         y = centerY + tickEnd * sin(angleRad)
                     ),
-                    strokeWidth = if (scale > 1f) 3f else 1.5f
+                    strokeWidth = if (scale > 1f) 3f else 3f
                 )
             }
 
