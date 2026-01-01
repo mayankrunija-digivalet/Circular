@@ -20,7 +20,6 @@ import kotlin.math.sin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -64,10 +63,8 @@ fun Controller() {
             val centerY = size.height / 2f
             val radius = size.height * 0.45f
 
-            // Current angle based on temperature
             val currentAngle = startAngle + ((animatedTemp - minTemp) / (maxTemp - minTemp)) * sweepAngle
 
-            // 1. Draw the Main Track Arc
             val trackColor = Color(0xFFC5B8A5)
             val strokeWidth = 80f
             drawArc(
@@ -80,16 +77,13 @@ fun Controller() {
                 topLeft = Offset(centerX - radius, centerY - radius)
             )
 
-            // 2. NEW: Outer and Inner Border Arcs
             val outerRadius = radius + (strokeWidth / 2) + 10f
             val innerRadius = radius - (strokeWidth / 2) - 10f
 
-// Calculate the progress sweep (from start to current knob position)
             val progressSweep = currentAngle - startAngle
 
-// Outer Dynamic Border
             drawArc(
-                color = Color.Black.copy(alpha = 0.2f), // Increased alpha slightly for visibility
+                color = Color.Black.copy(alpha = 0.2f),
                 startAngle = startAngle,
                 sweepAngle = progressSweep,
                 useCenter = false,
@@ -98,7 +92,6 @@ fun Controller() {
                 topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
             )
 
-// Inner Dynamic Border
             drawArc(
                 color = Color.Black.copy(alpha = 0.2f),
                 startAngle = startAngle,
@@ -109,18 +102,16 @@ fun Controller() {
                 topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
             )
 
-            // 3. NEW: High-density Ticks with Proximity Scaling
             val numberOfLines = 120
             val lineDegreeStep = sweepAngle / numberOfLines
-            val influenceRange = 3f // Degrees of influence around the knob
+            val influenceRange = 3f
 
             for (i in 0..numberOfLines) {
                 val lineAngle = startAngle + (i * lineDegreeStep)
 
-                // Calculate distance from current temperature angle for scaling effect
                 val angleDiff = abs(currentAngle - lineAngle)
                 val scale = if (angleDiff < influenceRange) {
-                    1f + (1f - (angleDiff / influenceRange)) * 0.5f // 15% growth
+                    1f + (1f - (angleDiff / influenceRange)) * 0.5f
                 } else {
                     1f
                 }
@@ -143,17 +134,6 @@ fun Controller() {
                 )
             }
 
-            // 4. Draw the Knob (Thumb)
-//            val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
-//            drawCircle(
-//                color = trackColor,
-//                radius = strokeWidth * 0.9f,
-//                center = Offset(
-//                    x = centerX + radius * cos(knobAngleRad),
-//                    y = centerY + radius * sin(knobAngleRad)
-//                )
-//            )
-
             val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
             val knobCenterX = centerX + radius * cos(knobAngleRad)
             val knobCenterY = centerY + radius * sin(knobAngleRad)
@@ -161,25 +141,21 @@ fun Controller() {
             val knobRadius = strokeWidth * 1.2f
 
             withTransform({
-                // Rotate the canvas around the knob's center point
-                // We add 180 because most humps are drawn "pointing left" (negative X)
-                // but the circle starts at the right (0 degrees).
                 rotate(degrees = currentAngle, pivot = Offset(knobCenterX, knobCenterY))
             }) {
                 val path = Path().apply {
-                    val peakHeight = knobRadius * .8f
+                    val peakHeight = knobRadius * 0.8f
                     val halfWidth = knobRadius * 2f
-
                     moveTo(knobCenterX, knobCenterY - halfWidth)
 
                     cubicTo(
                         x1 = knobCenterX, y1 = knobCenterY - halfWidth * 0.5f,
-                        x2 = knobCenterX - peakHeight, y2 = knobCenterY - halfWidth * 0.2f,
-                        x3 = knobCenterX - peakHeight, y3 = knobCenterY
+                        x2 = knobCenterX + peakHeight, y2 = knobCenterY - halfWidth * 0.2f,
+                        x3 = knobCenterX + peakHeight, y3 = knobCenterY
                     )
 
                     cubicTo(
-                        x1 = knobCenterX - peakHeight, y1 = knobCenterY + halfWidth * 0.2f,
+                        x1 = knobCenterX + peakHeight, y1 = knobCenterY + halfWidth * 0.2f,
                         x2 = knobCenterX, y2 = knobCenterY + halfWidth * 0.5f,
                         x3 = knobCenterX, y3 = knobCenterY + halfWidth
                     )
@@ -194,7 +170,6 @@ fun Controller() {
 
         }
 
-        // Temperature Text Overlay
         Text(
             text = "${animatedTemp.toInt()}°",
             modifier = Modifier.align(androidx.compose.ui.Alignment.CenterStart),
