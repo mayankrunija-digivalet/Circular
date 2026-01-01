@@ -154,50 +154,39 @@ fun Controller() {
 //                )
 //            )
 
-            val knobAngleDegrees = currentAngle
-            val knobRadius = strokeWidth * 0.8f
+            val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
+            val knobCenterX = centerX + radius * cos(knobAngleRad)
+            val knobCenterY = centerY + radius * sin(knobAngleRad)
+
+            val knobRadius = strokeWidth * 1.2f
 
             withTransform({
-                val knobCenterX = centerX + radius * cos(Math.toRadians(knobAngleDegrees.toDouble())).toFloat()
-                val knobCenterY = centerY + radius * sin(Math.toRadians(knobAngleDegrees.toDouble())).toFloat()
-                translate(knobCenterX, knobCenterY)
-
-                // Rotate 180 so the hump points INWARD toward the center,
-                // matching your screenshot.
-                rotate(knobAngleDegrees + 180f)
+                // Rotate the canvas around the knob's center point
+                // We add 180 because most humps are drawn "pointing left" (negative X)
+                // but the circle starts at the right (0 degrees).
+                rotate(degrees = currentAngle, pivot = Offset(knobCenterX, knobCenterY))
             }) {
                 val path = Path().apply {
-                    // Height of the protrusion
-                    val peakHeight = knobRadius * 1f
-                    // Width along the track - making this larger creates the "liquid" transition
-                    val baseWidth = knobRadius * 2f
-                    // How wide the rounded top is
-                    val topRoundness = baseWidth * 0.2f
+                    val peakHeight = knobRadius * .8f
+                    val halfWidth = knobRadius * 2f
 
-                    // 1. Start at the "top" shoulder on the track
-                    moveTo(0f, -baseWidth)
+                    moveTo(knobCenterX, knobCenterY - halfWidth)
 
-                    // 2. Curve from the track to the center of the peak
                     cubicTo(
-                        x1 = 0f, y1 = -baseWidth * 0.6f,       // Control 1: Keeps the base flat against the track
-                        x2 = -peakHeight, y2 = -topRoundness,  // Control 2: Pulls the "shoulder" out and keeps top wide
-                        x3 = -peakHeight, y3 = 0f               // The center point of the peak
+                        x1 = knobCenterX, y1 = knobCenterY - halfWidth * 0.5f,
+                        x2 = knobCenterX - peakHeight, y2 = knobCenterY - halfWidth * 0.2f,
+                        x3 = knobCenterX - peakHeight, y3 = knobCenterY
                     )
 
-                    // 3. Curve from the peak back to the track
                     cubicTo(
-                        x1 = -peakHeight, y1 = topRoundness,   // Mirror Control 2
-                        x2 = 0f, y2 = baseWidth * 0.6f,        // Mirror Control 1
-                        x3 = 0f, y3 = baseWidth
+                        x1 = knobCenterX - peakHeight, y1 = knobCenterY + halfWidth * 0.2f,
+                        x2 = knobCenterX, y2 = knobCenterY + halfWidth * 0.5f,
+                        x3 = knobCenterX, y3 = knobCenterY + halfWidth
                     )
-
                     close()
                 }
 
-                drawPath(
-                    path = path,
-                    color = trackColor
-                )
+                drawPath(path = path, color = trackColor)
             }
 
 
