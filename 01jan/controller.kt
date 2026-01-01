@@ -102,26 +102,29 @@ fun Controller() {
                 topLeft = Offset(centerX - innerRadius, centerY - innerRadius)
             )
 
+            val halfStroke = strokeWidth /1.7f
             val numberOfLines = 120
             val lineDegreeStep = sweepAngle / numberOfLines
-            val influenceRange = 3f
+            val influenceRange = 4f
+            val tickLength = strokeWidth * 0.15f
 
             for (i in 0..numberOfLines) {
                 val lineAngle = startAngle + (i * lineDegreeStep)
-
                 val angleDiff = abs(currentAngle - lineAngle)
+
                 val scale = if (angleDiff < influenceRange) {
-                    1f + (1f - (angleDiff / influenceRange)) * 0.5f
+                    (1f - (angleDiff / influenceRange)) * 3f
                 } else {
-                    1f
+                    0f
                 }
 
                 val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
-                val tickStart = radius * 1.05f
-                val tickEnd = radius * (1.02f + (0.05f * scale))
+
+                val tickStart = radius + halfStroke
+                val tickEnd = tickStart + tickLength + (tickLength * scale)
 
                 drawLine(
-                    color = if (scale > 1f) Color.LightGray else Color.LightGray,
+                    color = Color.LightGray,
                     start = Offset(
                         x = centerX + tickStart * cos(angleRad),
                         y = centerY + tickStart * sin(angleRad)
@@ -130,7 +133,28 @@ fun Controller() {
                         x = centerX + tickEnd * cos(angleRad),
                         y = centerY + tickEnd * sin(angleRad)
                     ),
-                    strokeWidth = if (scale > 1f) 3f else 3f
+                    strokeWidth = if (scale > 0f) 3f else 3f
+                )
+            }
+
+            for (i in 0..numberOfLines) {
+                val lineAngle = startAngle + (i * lineDegreeStep)
+                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
+
+                val tickStart = radius - halfStroke
+                val tickEnd = tickStart - tickLength
+
+                drawLine(
+                    color = Color.LightGray,
+                    start = Offset(
+                        x = centerX + tickStart * cos(angleRad),
+                        y = centerY + tickStart * sin(angleRad)
+                    ),
+                    end = Offset(
+                        x = centerX + tickEnd * cos(angleRad),
+                        y = centerY + tickEnd * sin(angleRad)
+                    ),
+                    strokeWidth = 3f
                 )
             }
 
