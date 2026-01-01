@@ -19,10 +19,12 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -38,21 +40,53 @@ fun Controller() {
     val sweepAngle = 80f
     val horizontalOffset = (-360).dp
 
+    var isDraggingKnob by remember { mutableStateOf(false) }
+
     val animatedTemp by animateFloatAsState(
         targetValue = tempValue,
         label = "TempAnim"
     )
 
+    val density = androidx.compose.ui.platform.LocalDensity.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectVerticalDragGestures { change, dragAmount ->
-                    change.consume()
-                    val sensitivity = 1200f
-                    val delta = -(dragAmount / sensitivity) * (maxTemp - minTemp)
-                    tempValue = (tempValue + delta).coerceIn(minTemp, maxTemp)
-                }
+                detectVerticalDragGestures(
+                    onDragStart = { offset ->
+                        val offsetPx = horizontalOffset.toPx() * .9f
+                        val centerX = size.width - offsetPx
+                        val centerY = size.height / 2f
+                        val radius = size.height * 0.45f
+
+                        val currentAngle = startAngle + ((tempValue - minTemp) / (maxTemp - minTemp)) * sweepAngle
+                        val angleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
+
+                        val knobCenterX = centerX + radius * cos(angleRad)
+                        val knobCenterY = centerY + radius * sin(angleRad)
+
+                        val strokeWidth = 80f
+                        val touchRadius = strokeWidth * 1.5f
+
+                        val distance = Math.sqrt(
+                            Math.pow((offset.x - knobCenterX).toDouble(), 2.0) +
+                                    Math.pow((offset.y - knobCenterY).toDouble(), 2.0)
+                        )
+
+                        isDraggingKnob = distance <= touchRadius
+                    },
+                    onDragEnd = { isDraggingKnob = false },
+                    onDragCancel = { isDraggingKnob = false },
+                    onVerticalDrag = { change, dragAmount ->
+                        if (isDraggingKnob) {
+                            change.consume()
+                            val sensitivity = 1200f
+                            val delta = -(dragAmount / sensitivity) * (maxTemp - minTemp)
+                            tempValue = (tempValue + delta).coerceIn(minTemp, maxTemp)
+                        }
+                    }
+                )
             }
     ) {
         val density = androidx.compose.ui.platform.LocalDensity.current
@@ -187,6 +221,15 @@ fun Controller() {
                 }
 
                 drawPath(path = path, color = trackColor)
+                drawPath(
+                    path = path,
+                    color = Color.Black, // Change this to your desired border color
+                    style = Stroke(
+                        width = 2.dp.toPx(), // Set your desired border thickness
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
             }
 
 
