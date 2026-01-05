@@ -77,6 +77,7 @@ fun Controller() {
 
         val startAngle = 125f
         val sweepAngle = 110f
+        val strokeWidth = 130f
 //    val horizontalOffset = (-250).dp
 
         var isDraggingKnob by remember { mutableStateOf(false) }
@@ -112,16 +113,18 @@ fun Controller() {
 
 
                         val radius = size.height * 0.35f
-                        val strokeWidth = 120f
-                        val touchTolerance = 50f
+//                        val touchTolerance = 50f
 
 
                         val distanceFromCenter =
                             kotlin.math.sqrt((deltaX * deltaX + deltaY * deltaY).toDouble())
                                 .toFloat()
 
-                        val minValidRadius = radius - (strokeWidth / 2) - touchTolerance
-                        val maxValidRadius = radius + (strokeWidth / 2) + touchTolerance
+//                        val minValidRadius = radius - (strokeWidth / 2) - touchTolerance
+//                        val maxValidRadius = radius + (strokeWidth / 2) + touchTolerance
+
+                        val minValidRadius = radius - (strokeWidth / 2)
+                        val maxValidRadius = radius + (strokeWidth / 2)
 
                         val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
 
@@ -201,7 +204,7 @@ fun Controller() {
                 val centerX = size.width - offsetPx
                 val centerY = size.height / 2f
                 val radius = size.height * 0.35f
-                val strokeWidth = 135f
+
 
 //            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
 //            val currentAngle = startAngle + ((tempValue - minValue) / (maxValue - minValue)) * sweepAngle
