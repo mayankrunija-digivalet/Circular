@@ -1,18 +1,13 @@
-package com.example.circular
+package com.example.slider_animation
 
 import android.util.Log
-import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -32,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -65,7 +58,8 @@ fun Controller() {
         Log.d("screen width","$screenWidth")
 
         val horizontalOffset = screenWidth * -0.55f
-//        val horizontalOffset = -30.dp
+//        val horizontalOffset = -(200.dp)
+        Log.d("horizontal offsetX","$horizontalOffset")
 
         val minValue = 16f
         val maxValue = 32f
@@ -73,7 +67,7 @@ fun Controller() {
 
 //    val minValue = 10f
 //    val maxValue = 1f
-        val tempValue = remember { Animatable(24f) }
+        val tempValue = remember { Animatable(16f) }
 
         val startAngle = 125f
         val sweepAngle = 110f
@@ -139,11 +133,7 @@ fun Controller() {
 
                             val ratio = (touchAngle - startAngle) / sweepAngle
 
-                            val targetValue =
-                                (minValue + ratio * (maxValue - minValue)).coerceIn(
-                                    minValue,
-                                    maxValue
-                                )
+                            val targetValue = (minValue + ratio * (maxValue - minValue)).coerceIn(minValue, maxValue)
                             val oldValueJump = targetValue.toInt()
                             Log.d("old target value touch", "$oldValueJump")
                             scope.launch {
@@ -203,7 +193,7 @@ fun Controller() {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val centerX = size.width - offsetPx
                 val centerY = size.height / 2f
-                val radius = size.height * 0.35f
+                val radius = (size.height * 0.35f)
 
 
 //            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
@@ -262,7 +252,7 @@ fun Controller() {
                             x = centerX + tickEnd * cos(angleRad),
                             y = centerY + tickEnd * sin(angleRad)
                         ),
-                        strokeWidth = if (scale > 0f) 3f else 3f
+                        strokeWidth = if (scale > 0f) 2f else 2f
                     )
                 }
 
@@ -286,7 +276,7 @@ fun Controller() {
                             x = centerX + tickEnd * cos(angleRad),
                             y = centerY + tickEnd * sin(angleRad)
                         ),
-                        strokeWidth = 3f
+                        strokeWidth = 2f
                     )
                 }
 
@@ -412,7 +402,7 @@ fun Controller() {
 
 
             }
-
+            val value = tempValue.value.toInt()
             Text(
                 text = "${tempValue.value.toInt()}",
                 modifier = Modifier
