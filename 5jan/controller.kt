@@ -123,7 +123,7 @@ fun Controller() {
                         val minValidRadius = radius - (strokeWidth / 2)
                         val maxValidRadius = radius + (strokeWidth / 2)
 
-//                        val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
+                        val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
 
 
                         var touchAngle =
@@ -133,14 +133,13 @@ fun Controller() {
 //                        val endAngle = startAngle + sweepAngle
 
                         val visualGapPx = strokeWidth * 0.7f
-                        val visualGapAngle =
-                            Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
+                        val visualGapAngle = Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
 
                         val visualStartAngle = startAngle + visualGapAngle
                         val visualSweepAngle = sweepAngle - (visualGapAngle * 2f)
                         val visualEndAngle = visualStartAngle + visualSweepAngle
 
-                        if (touchAngle in visualStartAngle..visualEndAngle) {
+                        if (touchAngle in visualStartAngle..visualEndAngle && isTouchingArc) {
                             val ratio = (touchAngle - visualStartAngle) / visualSweepAngle
 
 //                        if (touchAngle in startAngle..endAngle && isTouchingArc) {
@@ -248,12 +247,10 @@ fun Controller() {
 //                val visualStartAngle = startAngle + 12f
 //                val visualSweepAngle = sweepAngle - 22f
 
-// Visual gap based on stroke width (device independent)
-                val visualGapPx = strokeWidth * 0.7f
+                val visualGapPx = strokeWidth * 0.88f
 
-// Convert arc length → angle
-                val visualGapAngle =
-                    Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
+
+                val visualGapAngle = Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
                 val visualStartAngle = startAngle + visualGapAngle
                 val visualSweepAngle = sweepAngle - (visualGapAngle * 2f)
 
