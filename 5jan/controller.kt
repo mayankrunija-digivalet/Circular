@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -58,24 +59,32 @@ import kotlin.math.atan2
 
 @Composable
 fun Controller() {
-    val minValue = 16f
-    val maxValue = 32f
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        Log.d("screen width","$screenWidth")
+
+        val horizontalOffset = screenWidth * -0.55f
+//        val horizontalOffset = -30.dp
+
+        val minValue = 16f
+        val maxValue = 32f
+
 
 //    val minValue = 10f
 //    val maxValue = 1f
-    val tempValue = remember { Animatable(24f) }
+        val tempValue = remember { Animatable(24f) }
 
-    val startAngle = 125f
-    val sweepAngle = 110f
-    val horizontalOffset = (-250).dp
+        val startAngle = 125f
+        val sweepAngle = 110f
+//    val horizontalOffset = (-250).dp
 
-    var isDraggingKnob by remember { mutableStateOf(false) }
+        var isDraggingKnob by remember { mutableStateOf(false) }
 
-    val haptic = LocalHapticFeedback.current
+        val haptic = LocalHapticFeedback.current
 
-    val animatedValue = remember { Animatable(minValue) }
-    val scope = rememberCoroutineScope()
-
+        val animatedValue = remember { Animatable(minValue) }
+        val scope = rememberCoroutineScope()
 
 
 //    val animatedValue by animateFloatAsState(
@@ -85,270 +94,290 @@ fun Controller() {
 //     val animatedValue = tempValue
 
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgColor)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BgColor)
 
 
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
 
-                    val offsetPx = horizontalOffset.toPx() * .9f
-                    val centerX = size.width - offsetPx
-                    val centerY = size.height / 2f
-                    val deltaX = down.position.x - centerX
-                    val deltaY = down.position.y - centerY
-
-
-                    val radius = size.height * 0.42f
-                    val strokeWidth = 120f
-                    val touchTolerance = 50f
+                        val offsetPx = horizontalOffset.toPx() * .9f
+                        val centerX = size.width - offsetPx
+                        val centerY = size.height / 2f
+                        val deltaX = down.position.x - centerX
+                        val deltaY = down.position.y - centerY
 
 
-                    val distanceFromCenter = kotlin.math.sqrt((deltaX * deltaX + deltaY * deltaY).toDouble()).toFloat()
-
-                    val minValidRadius = radius - (strokeWidth / 2) - touchTolerance
-                    val maxValidRadius = radius + (strokeWidth / 2) + touchTolerance
-
-                    val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
+                        val radius = size.height * 0.35f
+                        val strokeWidth = 120f
+                        val touchTolerance = 50f
 
 
-                    var touchAngle = Math.toDegrees(atan2(deltaY.toDouble(), deltaX.toDouble())).toFloat()
-                    if (touchAngle < 0) touchAngle += 360f
+                        val distanceFromCenter =
+                            kotlin.math.sqrt((deltaX * deltaX + deltaY * deltaY).toDouble())
+                                .toFloat()
 
-                    val endAngle = startAngle + sweepAngle
+                        val minValidRadius = radius - (strokeWidth / 2) - touchTolerance
+                        val maxValidRadius = radius + (strokeWidth / 2) + touchTolerance
 
-                    if (touchAngle in startAngle..endAngle && isTouchingArc) {
+                        val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
 
-                        val ratio = (touchAngle - startAngle) / sweepAngle
-                        val targetValue = (minValue + ratio * (maxValue - minValue)).coerceIn(minValue, maxValue)
 
-                        scope.launch {
-                            tempValue.animateTo(
-                                targetValue = targetValue,
-                                animationSpec = tween(
-                                    durationMillis = 700,
-                                    easing = LinearOutSlowInEasing
+                        var touchAngle =
+                            Math.toDegrees(atan2(deltaY.toDouble(), deltaX.toDouble())).toFloat()
+                        if (touchAngle < 0) touchAngle += 360f
+
+                        val endAngle = startAngle + sweepAngle
+
+                        if (touchAngle in startAngle..endAngle && isTouchingArc) {
+
+                            val ratio = (touchAngle - startAngle) / sweepAngle
+
+                            val targetValue =
+                                (minValue + ratio * (maxValue - minValue)).coerceIn(
+                                    minValue,
+                                    maxValue
                                 )
-                            )
-                        }
-
-                        isDraggingKnob = true
-
-                        drag(down.id) { change ->
-                            val sensitivity = 1200f
-                            val dragAmount = change.position.y - change.previousPosition.y
-                            val delta = -(dragAmount / sensitivity) * (maxValue - minValue)
-
-                            val nextValue = (tempValue.value + delta).coerceIn(minValue, maxValue)
-
+                            val oldValueJump = targetValue.toInt()
+                            Log.d("old target value touch", "$oldValueJump")
                             scope.launch {
-                                tempValue.snapTo(nextValue)
+                                tempValue.animateTo(
+                                    targetValue = targetValue,
+                                    animationSpec = tween(
+                                        durationMillis = 700,
+                                        easing = LinearOutSlowInEasing
+                                    )
+                                )
                             }
 
-                            change.consume()
+                            val newValueJump = tempValue.value.toInt()
+                            Log.d("new target value touch", "$newValueJump")
+
+                            if (oldValueJump != newValueJump) {
+                                haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                            }
+
+                            isDraggingKnob = true
+
+                            drag(down.id) { change ->
+                                val oldValue = tempValue.value.toInt()
+                                Log.d("old target value drag", oldValue.toString())
+                                val sensitivity = 1200f
+                                val dragAmount = change.position.y - change.previousPosition.y
+                                val delta = -(dragAmount / sensitivity) * (maxValue - minValue)
+
+                                val nextValue =
+                                    (tempValue.value + delta).coerceIn(minValue, maxValue)
+
+                                scope.launch {
+                                    tempValue.snapTo(nextValue)
+                                }
+                                val newValue = nextValue.toInt()
+                                Log.d("new target value drag", newValue.toString())
+                                if (oldValue != newValue) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                }
+                                change.consume()
+                            }
+                            isDraggingKnob = false
                         }
-                        isDraggingKnob = false
                     }
                 }
-            }
 
 
+        )
 
 
-
-    )
-
-
-     {
+        {
 
 
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val offsetPx = with(density) { horizontalOffset.toPx() * .9f }
 
-
-
-
-        val density = androidx.compose.ui.platform.LocalDensity.current
-        val offsetPx = with(density) { horizontalOffset.toPx() * .9f }
-
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val centerX = size.width - offsetPx
-            val centerY = size.height / 2f
-            val radius = size.height * 0.42f
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val centerX = size.width - offsetPx
+                val centerY = size.height / 2f
+                val radius = size.height * 0.35f
+                val strokeWidth = 135f
 
 //            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
 //            val currentAngle = startAngle + ((tempValue - minValue) / (maxValue - minValue)) * sweepAngle
-            val visualStartAngle = startAngle+6f
-            val visualSweepAngle = sweepAngle-12f
-            val currentAngle = visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
-            val strokeWidth = 120f
 
 
+                val gapInPixels = strokeWidth * 0.7f
 
-            val halfStroke = strokeWidth /1.7f
-            val numberOfLines = 150
-            val lineLengthEnd = sweepAngle + 8f
-            val lineLengthStart = startAngle -5f
-            val lineDegreeStep = lineLengthEnd / numberOfLines
-            val influenceRange = 5f
-            val tickLength = strokeWidth * 0.16f
+                val dynamicOffsetAngle = Math.toDegrees((gapInPixels / radius).toDouble()).toFloat()
 
-            for (i in 0..numberOfLines) {
-                val lineAngle = lineLengthStart + (i * lineDegreeStep)
-                val angleDiff = abs(currentAngle - lineAngle)
 
-                val scale = if (angleDiff < influenceRange) {
-                    (1f - (angleDiff / influenceRange)) * 3f
-                } else {
-                    0f
+                val visualStartAngle = startAngle + dynamicOffsetAngle
+                val visualSweepAngle = sweepAngle - (dynamicOffsetAngle * 2)
+
+                val currentAngle =
+                    visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
+
+
+//                val visualStartAngle = startAngle + 12f
+//                val visualSweepAngle = sweepAngle - 22f
+//                val currentAngle =
+//                    visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
+//
+
+
+                val halfStroke = strokeWidth / 1.7f
+                val numberOfLines = 150
+                val lineLengthEnd = sweepAngle + 8.5f
+                val lineLengthStart = startAngle - 5f
+                val lineDegreeStep = lineLengthEnd / numberOfLines
+                val influenceRange = 4f
+                val tickLength = strokeWidth * 0.22f
+
+                for (i in 0..numberOfLines) {
+                    val lineAngle = lineLengthStart + (i * lineDegreeStep)
+                    val angleDiff = abs(currentAngle - lineAngle)
+
+                    val scale = if (angleDiff < influenceRange) {
+                        (1f - (angleDiff / influenceRange)) * 1.2f
+                    } else {
+                        0f
+                    }
+
+                    val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
+
+                    val tickStart = radius + halfStroke
+                    val tickEnd = tickStart + tickLength + (tickLength * scale)
+
+                    drawLine(
+                        color = LineColor,
+                        start = Offset(
+                            x = centerX + tickStart * cos(angleRad),
+                            y = centerY + tickStart * sin(angleRad)
+                        ),
+                        end = Offset(
+                            x = centerX + tickEnd * cos(angleRad),
+                            y = centerY + tickEnd * sin(angleRad)
+                        ),
+                        strokeWidth = if (scale > 0f) 3f else 3f
+                    )
                 }
 
-                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
-
-                val tickStart = radius + halfStroke
-                val tickEnd = tickStart + tickLength + (tickLength * scale)
-
-                drawLine(
-                    color = LineColor,
-                    start = Offset(
-                        x = centerX + tickStart * cos(angleRad),
-                        y = centerY + tickStart * sin(angleRad)
-                    ),
-                    end = Offset(
-                        x = centerX + tickEnd * cos(angleRad),
-                        y = centerY + tickEnd * sin(angleRad)
-                    ),
-                    strokeWidth = if (scale > 0f) 3f else 3f
-                )
-            }
 
 
 
-            for (i in 0..numberOfLines) {
-                val lineAngle = startAngle + (i * lineDegreeStep)
-                val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
+                for (i in 0..numberOfLines) {
+                    val lineAngle = lineLengthStart + (i * lineDegreeStep)
+                    val angleRad = Math.toRadians(lineAngle.toDouble()).toFloat()
 
-                val tickStart = radius - halfStroke
-                val tickEnd = tickStart - tickLength
+                    val tickStart = radius - halfStroke
+                    val tickEnd = tickStart - tickLength
 
-                drawLine(
-                    color = LineColor,
-                    start = Offset(
-                        x = centerX + tickStart * cos(angleRad),
-                        y = centerY + tickStart * sin(angleRad)
-                    ),
-                    end = Offset(
-                        x = centerX + tickEnd * cos(angleRad),
-                        y = centerY + tickEnd * sin(angleRad)
-                    ),
-                    strokeWidth = 3f
-                )
-            }
-
-
+                    drawLine(
+                        color = LineColor,
+                        start = Offset(
+                            x = centerX + tickStart * cos(angleRad),
+                            y = centerY + tickStart * sin(angleRad)
+                        ),
+                        end = Offset(
+                            x = centerX + tickEnd * cos(angleRad),
+                            y = centerY + tickEnd * sin(angleRad)
+                        ),
+                        strokeWidth = 3f
+                    )
+                }
 
 
+                val outerRadius = radius + (strokeWidth / 2)
+                val progressSweep = currentAngle - startAngle
 
 
-
-            val outerRadius = radius + (strokeWidth / 2)
-            val progressSweep = currentAngle - startAngle
-
-
-            drawArc(
-                color = BorderColor,
-                startAngle = startAngle,
-                sweepAngle = progressSweep,
-
-                useCenter = false,
-                style = Stroke(width = 10f, cap = StrokeCap.Round),
-                size = Size(outerRadius * 2, outerRadius * 2),
-                topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
-            )
-
-
-
-
-
-            val innerRadius = radius - (strokeWidth / 2)-2f
-            val fadeBrush = Brush.sweepGradient(
-                colorStops = arrayOf(
-                    0.0f to BorderColor,
-                    (progressSweep - 20f) / 360f to BorderColor,
-                    progressSweep / 360f to BorderColor.copy(alpha = 0f)
-                ),
-                center = Offset(centerX, centerY)
-            )
-
-
-
-
-            rotate(startAngle, pivot = Offset(centerX, centerY)) {
                 drawArc(
-                    brush = fadeBrush,
-                    startAngle = 0f,
+                    color = BorderColor,
+                    startAngle = startAngle,
                     sweepAngle = progressSweep,
+
                     useCenter = false,
-                    style = Stroke(width = 5f, cap = StrokeCap.Round),
-                    size = Size(innerRadius * 2, innerRadius * 2),
-                    topLeft = Offset(
-                        centerX - innerRadius,
-                        centerY - innerRadius
-                    )
+                    style = Stroke(width = 8f, cap = StrokeCap.Round),
+                    size = Size(outerRadius * 2, outerRadius * 2),
+                    topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
                 )
-            }
+
+
+                val innerRadius = radius - (strokeWidth / 2) - 2f
+                val fadeBrush = Brush.sweepGradient(
+                    colorStops = arrayOf(
+                        0.0f to BorderColor,
+                        (progressSweep - 20f) / 360f to BorderColor,
+                        progressSweep / 360f to BorderColor.copy(alpha = 0f)
+                    ),
+                    center = Offset(centerX, centerY)
+                )
 
 
 
 
-
-
-            val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
-            val knobCenterX = centerX + radius * cos(knobAngleRad)
-            val knobCenterY = centerY + radius * sin(knobAngleRad)
-
-            val knobRadius = strokeWidth * 1.2f
-
-            withTransform({
-                rotate(degrees = currentAngle, pivot = Offset(knobCenterX, knobCenterY))
-            }) {
-                val peakHeight = knobRadius * 0.8f
-                val halfWidth = knobRadius * 2f
-                val path = Path().apply {
-
-                    moveTo(knobCenterX, knobCenterY - halfWidth)
-
-                    cubicTo(
-                        x1 = knobCenterX, y1 = knobCenterY - halfWidth * 0.5f,
-                        x2 = knobCenterX + peakHeight, y2 = knobCenterY - halfWidth * 0.2f,
-                        x3 = knobCenterX + peakHeight, y3 = knobCenterY
+                rotate(startAngle, pivot = Offset(centerX, centerY)) {
+                    drawArc(
+                        brush = fadeBrush,
+                        startAngle = 0f,
+                        sweepAngle = progressSweep,
+                        useCenter = false,
+                        style = Stroke(width = 4f, cap = StrokeCap.Round),
+                        size = Size(innerRadius * 2, innerRadius * 2),
+                        topLeft = Offset(
+                            centerX - innerRadius,
+                            centerY - innerRadius
+                        )
                     )
-
-                    cubicTo(
-                        x1 = knobCenterX + peakHeight, y1 = knobCenterY + halfWidth * 0.2f,
-                        x2 = knobCenterX, y2 = knobCenterY + halfWidth * 0.5f,
-                        x3 = knobCenterX, y3 = knobCenterY + halfWidth
-                    )
-                    close()
                 }
 
-                drawPath(
-                    path = path,
-                    color = trackColor
-                )
 
+                val knobAngleRad = Math.toRadians(currentAngle.toDouble()).toFloat()
+                val knobCenterX = centerX + radius * cos(knobAngleRad)
+                val knobCenterY = centerY + radius * sin(knobAngleRad)
 
+                val knobRadius = strokeWidth * 1.2f
 
-                drawPath(
-                    path = path,
-                    color = BorderColor,
-                    style = Stroke(
-                        width = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                withTransform({
+                    rotate(degrees = currentAngle, pivot = Offset(knobCenterX, knobCenterY))
+                }) {
+                    val peakHeight = knobRadius * 0.65f
+                    val halfWidth = knobRadius * 1.4f
+                    val path = Path().apply {
+
+                        moveTo(knobCenterX, knobCenterY - halfWidth)
+
+                        cubicTo(
+                            x1 = knobCenterX, y1 = knobCenterY - halfWidth * 0.5f,
+                            x2 = knobCenterX + peakHeight, y2 = knobCenterY - halfWidth * 0.2f,
+                            x3 = knobCenterX + peakHeight, y3 = knobCenterY
+                        )
+
+                        cubicTo(
+                            x1 = knobCenterX + peakHeight, y1 = knobCenterY + halfWidth * 0.2f,
+                            x2 = knobCenterX, y2 = knobCenterY + halfWidth * 0.5f,
+                            x3 = knobCenterX, y3 = knobCenterY + halfWidth
+                        )
+                        close()
+                    }
+
+                    drawPath(
+                        path = path,
+                        color = trackColor
                     )
-                )
+
+
+
+                    drawPath(
+                        path = path,
+                        color = BorderColor,
+                        style = Stroke(
+                            width = 1.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
 
 
 //                val gradientBrush = Brush.linearGradient(
@@ -366,46 +395,38 @@ fun Controller() {
 //                    )
 //                )
 
+                }
+
+                drawArc(
+                    color = trackColor,
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    size = Size(radius * 2, radius * 2),
+                    topLeft = Offset(centerX - radius, centerY - radius)
+                )
+
+
             }
 
-            drawArc(
-                color = trackColor,
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                size = Size(radius * 2, radius * 2),
-                topLeft = Offset(centerX - radius, centerY - radius)
+            Text(
+                text = "${tempValue.value.toInt()}",
+                modifier = Modifier
+                    .align(CenterStart)
+                    .padding(start = 50.dp),
+                style = androidx.compose.ui.text.TextStyle(
+                    color = Color.Black,
+                    fontSize = 50.sp,
+                    fontWeight = FontWeight.ExtraLight
+                )
             )
-
-
-
-
-
-
-
-
-
 
 
         }
 
-        Text(
-            text = "${tempValue.value.toInt()}",
-            modifier = Modifier.align(CenterStart).padding(start = 50.dp),
-            style = androidx.compose.ui.text.TextStyle(
-                color = Color.Black,
-                fontSize = 50.sp,
-                fontWeight = FontWeight.ExtraLight
-            )
-        )
-
 
     }
-
-
-
-
 }
 
 
