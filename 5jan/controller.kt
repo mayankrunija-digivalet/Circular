@@ -1,5 +1,6 @@
 package com.example.circular
 
+import android.util.Log
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -52,6 +53,7 @@ import com.example.slider_animation.ui.theme.LineColor
 import com.example.slider_animation.ui.theme.trackColor
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.atan2
 
 
 @Composable
@@ -92,18 +94,34 @@ fun Controller() {
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
+
                     val offsetPx = horizontalOffset.toPx() * .9f
                     val centerX = size.width - offsetPx
                     val centerY = size.height / 2f
                     val deltaX = down.position.x - centerX
                     val deltaY = down.position.y - centerY
 
-                    var touchAngle = Math.toDegrees(Math.atan2(deltaY.toDouble(), deltaX.toDouble())).toFloat()
+
+                    val radius = size.height * 0.42f
+                    val strokeWidth = 120f
+                    val touchTolerance = 50f
+
+
+                    val distanceFromCenter = kotlin.math.sqrt((deltaX * deltaX + deltaY * deltaY).toDouble()).toFloat()
+
+                    val minValidRadius = radius - (strokeWidth / 2) - touchTolerance
+                    val maxValidRadius = radius + (strokeWidth / 2) + touchTolerance
+
+                    val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
+
+
+                    var touchAngle = Math.toDegrees(atan2(deltaY.toDouble(), deltaX.toDouble())).toFloat()
                     if (touchAngle < 0) touchAngle += 360f
 
                     val endAngle = startAngle + sweepAngle
 
-                    if (touchAngle in startAngle..endAngle) {
+                    if (touchAngle in startAngle..endAngle && isTouchingArc) {
+
                         val ratio = (touchAngle - startAngle) / sweepAngle
                         val targetValue = (minValue + ratio * (maxValue - minValue)).coerceIn(minValue, maxValue)
 
@@ -111,7 +129,7 @@ fun Controller() {
                             tempValue.animateTo(
                                 targetValue = targetValue,
                                 animationSpec = tween(
-                                    durationMillis = 500,
+                                    durationMillis = 700,
                                     easing = LinearOutSlowInEasing
                                 )
                             )
@@ -140,7 +158,8 @@ fun Controller() {
 
 
 
-                )
+
+    )
 
 
      {
@@ -160,8 +179,8 @@ fun Controller() {
 
 //            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
 //            val currentAngle = startAngle + ((tempValue - minValue) / (maxValue - minValue)) * sweepAngle
-            val visualStartAngle = startAngle+8f
-            val visualSweepAngle = sweepAngle-14f
+            val visualStartAngle = startAngle+6f
+            val visualSweepAngle = sweepAngle-12f
             val currentAngle = visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
             val strokeWidth = 120f
 
@@ -248,6 +267,10 @@ fun Controller() {
                 topLeft = Offset(centerX - outerRadius, centerY - outerRadius)
             )
 
+
+
+
+
             val innerRadius = radius - (strokeWidth / 2)-2f
             val fadeBrush = Brush.sweepGradient(
                 colorStops = arrayOf(
@@ -257,6 +280,10 @@ fun Controller() {
                 ),
                 center = Offset(centerX, centerY)
             )
+
+
+
+
             rotate(startAngle, pivot = Offset(centerX, centerY)) {
                 drawArc(
                     brush = fadeBrush,
