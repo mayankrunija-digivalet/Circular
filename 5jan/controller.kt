@@ -48,6 +48,7 @@ import com.example.slider_animation.ui.theme.trackColor
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.min
 
 
 @Composable
@@ -56,8 +57,8 @@ fun Controller() {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenWidth = maxWidth
         Log.d("screen width","$screenWidth")
-
         val horizontalOffset = screenWidth * -0.55f
+//        val horizontalOffset = screenWidth * 0.55f
 //        val horizontalOffset = -(200.dp)
         Log.d("horizontal offsetX","$horizontalOffset")
 
@@ -71,14 +72,12 @@ fun Controller() {
 
         val startAngle = 125f
         val sweepAngle = 110f
-        val strokeWidth = 130f
-//    val horizontalOffset = (-250).dp
 
         var isDraggingKnob by remember { mutableStateOf(false) }
 
         val haptic = LocalHapticFeedback.current
 
-        val animatedValue = remember { Animatable(minValue) }
+//        val animatedValue = remember { Animatable(minValue) }
         val scope = rememberCoroutineScope()
 
 
@@ -106,8 +105,12 @@ fun Controller() {
                         val deltaY = down.position.y - centerY
 
 
-                        val radius = size.height * 0.35f
+//                        val radius = size.height * 0.35f
+                        val radius = min(size.width, size.height) * 0.75f
+
 //                        val touchTolerance = 50f
+                        val strokeWidth = radius * 0.15f
+
 
 
                         val distanceFromCenter =
@@ -120,18 +123,29 @@ fun Controller() {
                         val minValidRadius = radius - (strokeWidth / 2)
                         val maxValidRadius = radius + (strokeWidth / 2)
 
-                        val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
+//                        val isTouchingArc = distanceFromCenter in minValidRadius..maxValidRadius
 
 
                         var touchAngle =
                             Math.toDegrees(atan2(deltaY.toDouble(), deltaX.toDouble())).toFloat()
                         if (touchAngle < 0) touchAngle += 360f
 
-                        val endAngle = startAngle + sweepAngle
+//                        val endAngle = startAngle + sweepAngle
 
-                        if (touchAngle in startAngle..endAngle && isTouchingArc) {
+                        val visualGapPx = strokeWidth * 0.7f
+                        val visualGapAngle =
+                            Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
 
-                            val ratio = (touchAngle - startAngle) / sweepAngle
+                        val visualStartAngle = startAngle + visualGapAngle
+                        val visualSweepAngle = sweepAngle - (visualGapAngle * 2f)
+                        val visualEndAngle = visualStartAngle + visualSweepAngle
+
+                        if (touchAngle in visualStartAngle..visualEndAngle) {
+                            val ratio = (touchAngle - visualStartAngle) / visualSweepAngle
+
+//                        if (touchAngle in startAngle..endAngle && isTouchingArc) {
+//
+//                            val ratio = (touchAngle - startAngle) / sweepAngle
 
                             val targetValue = (minValue + ratio * (maxValue - minValue)).coerceIn(minValue, maxValue)
                             val oldValueJump = targetValue.toInt()
@@ -193,31 +207,63 @@ fun Controller() {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val centerX = size.width - offsetPx
                 val centerY = size.height / 2f
-                val radius = (size.height * 0.35f)
+                Log.d("center x,y", "$centerX $centerY")
+
+
+
+//                val radius = (size.height * 0.35f)
+
+                val radius = min(size.width, size.height) * 0.75f
+                Log.d("radius", "$radius")
+
+
+
+                val strokeWidth = radius * 0.15f
+
 
 
 //            val currentAngle = startAngle + ((animatedValue - minValue) / (maxValue - minValue)) * sweepAngle
 //            val currentAngle = startAngle + ((tempValue - minValue) / (maxValue - minValue)) * sweepAngle
 
 
-                val gapInPixels = strokeWidth * 0.7f
+//                val gapInPixels = strokeWidth * 0.7f
+//
+//                val dynamicOffsetAngle = Math.toDegrees((gapInPixels / radius).toDouble()).toFloat()
+//
+//
+//                val visualStartAngle = startAngle + dynamicOffsetAngle
+//                Log.d("start angle", "$visualStartAngle")
+//                val visualSweepAngle = sweepAngle - (dynamicOffsetAngle * 2)
+//                Log.d("sweep angle", "$visualSweepAngle")
+//                val currentAngle =
+//                    visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
 
-                val dynamicOffsetAngle = Math.toDegrees((gapInPixels / radius).toDouble()).toFloat()
 
-
-                val visualStartAngle = startAngle + dynamicOffsetAngle
-                val visualSweepAngle = sweepAngle - (dynamicOffsetAngle * 2)
-
-                val currentAngle =
-                    visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
-
+//                val startOffsetPercent = 0.06f
+//                val sweepReductionPercent = 0.12f
+//
+//                val visualStartAngle = startAngle + (sweepAngle * startOffsetPercent)
+//                val visualSweepAngle = sweepAngle - (sweepAngle * sweepReductionPercent)
 
 //                val visualStartAngle = startAngle + 12f
 //                val visualSweepAngle = sweepAngle - 22f
-//                val currentAngle =
-//                    visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
-//
 
+// Visual gap based on stroke width (device independent)
+                val visualGapPx = strokeWidth * 0.7f
+
+// Convert arc length → angle
+                val visualGapAngle =
+                    Math.toDegrees((visualGapPx / radius).toDouble()).toFloat()
+                val visualStartAngle = startAngle + visualGapAngle
+                val visualSweepAngle = sweepAngle - (visualGapAngle * 2f)
+
+
+
+                Log.d("start angle", "$visualStartAngle")
+                Log.d("sweep angle", "$visualSweepAngle")
+
+
+                val currentAngle = visualStartAngle + ((tempValue.value - minValue) / (maxValue - minValue)) * visualSweepAngle
 
                 val halfStroke = strokeWidth / 1.7f
                 val numberOfLines = 150
@@ -282,7 +328,8 @@ fun Controller() {
 
 
                 val outerRadius = radius + (strokeWidth / 2)
-                val progressSweep = currentAngle - startAngle
+//                val progressSweep = currentAngle - startAngle
+                val progressSweep = currentAngle - visualStartAngle
 
 
                 drawArc(
@@ -331,6 +378,7 @@ fun Controller() {
                 val knobCenterY = centerY + radius * sin(knobAngleRad)
 
                 val knobRadius = strokeWidth * 1.2f
+                Log.d("knob radius", "$knobRadius")
 
                 withTransform({
                     rotate(degrees = currentAngle, pivot = Offset(knobCenterX, knobCenterY))
